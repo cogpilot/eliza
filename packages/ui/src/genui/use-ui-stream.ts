@@ -8,7 +8,9 @@ import type {
   ElizaGenUiStreamState,
 } from "./types";
 
-export function officialSpecToEliza(spec: OfficialSpec | null): ElizaGenUiSpec | null {
+export function officialSpecToEliza(
+  spec: OfficialSpec | null,
+): ElizaGenUiSpec | null {
   if (!spec) return null;
   const { root, elements, state } = spec;
   const components = Object.entries(elements).map(([id, el]) => {
@@ -33,7 +35,7 @@ export function officialSpecToEliza(spec: OfficialSpec | null): ElizaGenUiSpec |
 
 export function useUIStream(
   options: ElizaGenUiStreamOptions,
- ): ElizaGenUiStreamState & {
+): ElizaGenUiStreamState & {
   send: (sendOptions?: ElizaGenUiSendOptions) => Promise<void>;
   reset: () => void;
 } {
