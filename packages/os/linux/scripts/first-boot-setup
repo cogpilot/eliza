@@ -1,0 +1,226 @@
+#!/usr/bin/env bash
+#
+# first-boot-setup — elizaOS first boot configuration script
+#
+# This script runs once on first boot after installation to:
+# - Generate machine ID
+# - Resize root partition if VM disk was expanded
+# - Create elizaOS directories
+# - Initialize databases
+# - Apply installation answers
+# - Configure privacy mode
+# - Launch onboarding if graphical session
+#
+set -euo pipefail
+
+ELIZAOS_CONFIG_DIR="${ELIZAOS_CONFIG_DIR:-/var/lib/elizaos}"
+ELIZAOS_FIRST_BOOT_LOG="/var/log/elizaos-first-boot.log"
+ELIZAOS_INSTALL_ANSWERS="/var/lib/elizaos/.install-answers.json"
+
+# Logging helper
+log() {
+    local msg="[$(date -Iseconds)] $*"
+    echo "$msg" | tee -a "$ELIZAOS_FIRST_BOOT_LOG"
+}
+
+error() {
+    log "ERROR: $*"
+    exit 1
+}
+
+# Ensure log directory exists
+mkdir -p "$(dirname "$ELIZAOS_FIRST_BOOT_LOG")"
+
+log "=========================================="
+log "elizaOS First Boot Setup Starting"
+log "=========================================="
+
+# 1. Generate machine ID if missing or empty
+log "Step 1: Checking machine ID..."
+if [[ ! -f /etc/machine-id ]] || [[ ! -s /etc/machine-id ]]; then
+    log "Generating new machine-id..."
+    systemd-machine-id-setup
+    log "Machine ID generated: $(cat /etc/machine-id)"
+else
+    log "Machine ID exists: $(cat /etc/machine-id)"
+fi
+
+# 2. Resize root partition if VM disk was expanded
+log "Step 2: Checking for disk resize..."
+if command -v growpart &>/dev/null; then
+    # Detect root device
+    ROOT_DEV=$(findmnt -n -o SOURCE /)
+    ROOT_DISK=$(lsblk -no PKNAME "$ROOT_DEV" 2>/dev/null || echo "")
+    ROOT_PART=$(echo "$ROOT_DEV" | grep -oE '[0-9]+$' || echo "")
+    
+    if [[ -n "$ROOT_DISK" ]] && [[ -n "$ROOT_PART" ]]; then
+        log "Attempting to grow partition /dev/${ROOT_DISK}${ROOT_PART}..."
+        if growpart "/dev/$ROOT_DISK" "$ROOT_PART" 2>/dev/null; then
+            log "Partition grown successfully"
+            
+            # Resize filesystem
+            FS_TYPE=$(findmnt -n -o FSTYPE /)
+            case "$FS_TYPE" in
+                btrfs)
+                    log "Resizing btrfs filesystem..."
+                    btrfs filesystem resize max /
+                    ;;
+                ext4)
+                    log "Resizing ext4 filesystem..."
+                    resize2fs "$ROOT_DEV"
+                    ;;
+                *)
+                    log "Unknown filesystem type: $FS_TYPE, skipping resize"
+                    ;;
+            esac
+        else
+            log "Partition already at maximum size or growpart failed"
+        fi
+    else
+        log "Could not determine root disk/partition, skipping resize"
+    fi
+else
+    log "growpart not available, skipping disk resize"
+fi
+
+# 3. Set up elizaOS directories
+log "Step 3: Creating elizaOS directories..."
+mkdir -p "$ELIZAOS_CONFIG_DIR"/{agents,models,plugins,logs,cache}
+mkdir -p /etc/elizaos
+
+# Find the default user (first non-root user with UID >= 1000)
+DEFAULT_USER=$(getent passwd | awk -F: '$3 >= 1000 && $3 < 65534 { print $1; exit }')
+if [[ -n "$DEFAULT_USER" ]]; then
+    log "Setting up directories for user: $DEFAULT_USER"
+    USER_HOME=$(getent passwd "$DEFAULT_USER" | cut -d: -f6)
+    
+    # Create user eliza directory
+    mkdir -p "$USER_HOME/.eliza"
+    chown -R "$DEFAULT_USER:$DEFAULT_USER" "$USER_HOME/.eliza"
+    
+    # Set ownership of var directory
+    chown -R "$DEFAULT_USER:$DEFAULT_USER" "$ELIZAOS_CONFIG_DIR"
+else
+    log "No default user found, directories created with root ownership"
+fi
+
+log "Directories created"
+
+# 4. Initialize SQLite databases
+log "Step 4: Initializing databases..."
+if [[ -n "$DEFAULT_USER" ]] && [[ -x /opt/elizaos/bin/elizaos ]]; then
+    if su - "$DEFAULT_USER" -c "/opt/elizaos/bin/elizaos db:migrate" 2>/dev/null; then
+        log "Database migration completed"
+    else
+        log "Database migration skipped or failed (will run on first app launch)"
+    fi
+else
+    log "Database migration skipped (elizaos binary not found or no default user)"
+fi
+
+# 5. Apply installation answers if present
+log "Step 5: Checking for installation answers..."
+if [[ -f "$ELIZAOS_INSTALL_ANSWERS" ]]; then
+    log "Applying installation configuration..."
+    
+    # Parse JSON and apply settings
+    if command -v jq &>/dev/null; then
+        # Extract privacy mode
+        PRIVACY_MODE=$(jq -r '.privacy.mode // "direct"' "$ELIZAOS_INSTALL_ANSWERS")
+        echo "$([[ "$PRIVACY_MODE" == "tor" ]] && echo "1" || echo "0")" > /etc/elizaos/privacy-mode
+        log "Privacy mode set to: $PRIVACY_MODE"
+        
+        # Extract agent config
+        AGENT_CONFIG=$(jq '.agent' "$ELIZAOS_INSTALL_ANSWERS")
+        if [[ -n "$DEFAULT_USER" ]] && [[ "$AGENT_CONFIG" != "null" ]]; then
+            echo "$AGENT_CONFIG" > "$USER_HOME/.eliza/config.json"
+            chown "$DEFAULT_USER:$DEFAULT_USER" "$USER_HOME/.eliza/config.json"
+            log "Agent configuration applied"
+        fi
+    else
+        log "jq not available, skipping JSON parsing"
+    fi
+    
+    # Remove answers file after applying
+    rm -f "$ELIZAOS_INSTALL_ANSWERS"
+    log "Installation answers applied and removed"
+else
+    log "No installation answers found"
+fi
+
+# 6. Enable Tor if privacy mode selected
+log "Step 6: Configuring privacy mode..."
+if [[ -f /etc/elizaos/privacy-mode ]]; then
+    PRIVACY_VALUE=$(cat /etc/elizaos/privacy-mode)
+    if [[ "$PRIVACY_VALUE" == "1" ]]; then
+        log "Privacy mode enabled, starting Tor..."
+        if systemctl enable --now tor 2>/dev/null; then
+            log "Tor service started"
+        else
+            log "Tor service not available"
+        fi
+    else
+        log "Direct network mode, Tor not enabled"
+    fi
+else
+    log "No privacy mode configuration, defaulting to direct"
+    echo "0" > /etc/elizaos/privacy-mode
+fi
+
+# 7. Enable VM guest services if available
+log "Step 7: Enabling VM guest services..."
+for service in qemu-guest-agent spice-vdagent open-vm-tools virtualbox-guest-utils; do
+    if systemctl list-unit-files "${service}.service" &>/dev/null; then
+        if systemctl enable --now "${service}.service" 2>/dev/null; then
+            log "Enabled: ${service}"
+        fi
+    fi
+done
+
+# 8. Start agent onboarding UI if interactive
+log "Step 8: Checking for graphical session..."
+if systemctl is-active --quiet graphical.target; then
+    if [[ -n "$DEFAULT_USER" ]] && [[ -x /opt/elizaos/bin/elizaos-onboarding ]]; then
+        log "Launching guided agent onboarding..."
+        # Schedule onboarding to start after login
+        cat > "/etc/xdg/autostart/elizaos-onboarding.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=elizaOS Onboarding
+Exec=/opt/elizaos/bin/elizaos-onboarding
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+OnlyShowIn=GNOME;
+EOF
+        log "Onboarding autostart configured"
+    else
+        log "Onboarding binary not found or no default user"
+    fi
+else
+    log "No graphical session active, skipping onboarding UI"
+fi
+
+# 9. Set hostname from cloud-init or installation answers
+log "Step 9: Finalizing hostname..."
+if [[ -f /etc/hostname ]]; then
+    HOSTNAME=$(cat /etc/hostname)
+    hostnamectl set-hostname "$HOSTNAME" 2>/dev/null || true
+    log "Hostname set to: $HOSTNAME"
+fi
+
+# 10. Generate SSH host keys if missing
+log "Step 10: Checking SSH host keys..."
+if [[ ! -f /etc/ssh/ssh_host_ed25519_key ]]; then
+    log "Generating SSH host keys..."
+    ssh-keygen -A
+    log "SSH host keys generated"
+else
+    log "SSH host keys already exist"
+fi
+
+log "=========================================="
+log "elizaOS First Boot Setup Complete"
+log "=========================================="
+
+exit 0

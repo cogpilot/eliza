@@ -1,0 +1,24 @@
+[Unit]
+Description=elizaOS First Boot Configuration
+Documentation=https://docs.elizaos.ai/installation/first-boot
+ConditionPathExists=!/var/lib/elizaos/.first-boot-complete
+After=network-online.target local-fs.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/elizaos/bin/first-boot-setup
+ExecStartPost=/usr/bin/touch /var/lib/elizaos/.first-boot-complete
+RemainAfterExit=yes
+StandardOutput=journal+console
+StandardError=journal+console
+TimeoutStartSec=300
+
+# Security hardening
+NoNewPrivileges=no
+ProtectSystem=full
+ProtectHome=no
+ReadWritePaths=/var/lib/elizaos /home /etc/elizaos
+
+[Install]
+WantedBy=multi-user.target

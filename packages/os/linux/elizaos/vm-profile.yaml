@@ -1,0 +1,162 @@
+# elizaOS VM Profile Configuration
+# Defines build settings for VM-optimized ISO images
+
+profile: vm
+base: debian-trixie
+arch:
+  - amd64
+  - arm64
+
+boot:
+  type: uefi
+  secure_boot: optional
+  grub_timeout: 5
+  cmdline:
+    - quiet
+    - splash
+    - net.ifnames=0
+
+partitioning:
+  scheme: gpt
+  partitions:
+    - name: efi
+      size: 512M
+      type: efi
+      filesystem: vfat
+      mount: /boot/efi
+    - name: boot
+      size: 1G
+      type: boot
+      filesystem: ext4
+      mount: /boot
+    - name: swap
+      size: 4G
+      type: swap
+      filesystem: swap
+    - name: root
+      size: "*"
+      type: root
+      filesystem: btrfs
+      mount: /
+      subvolumes:
+        - "@"
+        - "@home"
+        - "@var"
+        - "@snapshots"
+
+packages:
+  install:
+    # VM guest agents
+    - qemu-guest-agent
+    - open-vm-tools
+    - virtualbox-guest-utils
+    - spice-vdagent
+    
+    # Cloud-init for automated provisioning
+    - cloud-init
+    - cloud-initramfs-growroot
+    
+    # Network management
+    - network-manager
+    - openssh-server
+    
+    # Display and graphics
+    - xserver-xorg
+    - gdm3
+    - gnome-session
+    - gnome-terminal
+    - gnome-control-center
+    
+    # Filesystem tools
+    - btrfs-progs
+    - ntfs-3g
+    - dosfstools
+    
+    # System utilities
+    - sudo
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - tmux
+    
+    # elizaOS dependencies
+    - nodejs
+    - npm
+    
+  remove:
+    # Remove live-boot components for installed systems
+    - live-boot
+    - live-config
+    - live-boot-initramfs-tools
+    - live-config-systemd
+
+services:
+  enable:
+    # elizaOS services
+    - elizaos-agent.service
+    - elizaos-launcher.service
+    - elizaos-first-boot.service
+    
+    # System services
+    - NetworkManager.service
+    - gdm3.service
+    - ssh.service
+    
+    # VM guest services (conditional - enabled if available)
+    - qemu-guest-agent.service
+    - spice-vdagent.service
+    - open-vm-tools.service
+    - virtualbox-guest-utils.service
+
+  disable:
+    # Disable services not needed in VM
+    - bluetooth.service
+    - cups.service
+
+users:
+  default:
+    name: eliza
+    groups:
+      - sudo
+      - audio
+      - video
+      - plugdev
+      - netdev
+      - docker
+    shell: /bin/bash
+    lock_passwd: false
+
+cloud_init:
+  enabled: true
+  datasources:
+    - NoCloud
+    - ConfigDrive
+    - OpenStack
+    - GCE
+    - Azure
+    - Ec2
+
+security:
+  ssh:
+    permit_root_login: false
+    password_authentication: true
+  firewall:
+    enabled: true
+    default_policy: deny
+    allow:
+      - ssh
+      - http
+      - https
+      - 3000/tcp  # elizaOS API
+
+branding:
+  name: elizaOS
+  pretty_name: "elizaOS"
+  id: elizaos
+  home_url: "https://elizaos.ai/"
+  documentation_url: "https://docs.elizaos.ai/"
+  support_url: "https://github.com/elizaos/eliza/issues"
+  logo_path: /usr/share/elizaos/branding/logo.svg
+  wallpaper_path: /usr/share/elizaos/branding/wallpaper.png
