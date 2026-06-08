@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# iso-to-vm.py — Convert elizaOS ISO to VM image with automated installation
+# iso-to-vm.sh — Convert elizaOS ISO to VM image with automated installation
 #
 # This script boots an ISO in QEMU with an answer file to perform
 # an unattended installation, producing a ready-to-use VM image.

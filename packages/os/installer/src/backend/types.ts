@@ -19,7 +19,7 @@ export interface DiskPartition {
   name: string;
   size: number;
   type: 'efi' | 'boot' | 'root' | 'swap' | 'home';
-  filesystem: 'vfat' | 'ext4' | 'btrfs' | 'swap';
+  filesystem: 'vfat' | 'ext4' | 'btrfs' | 'swap' | 'unknown';
   mountPoint: string;
 }
 
