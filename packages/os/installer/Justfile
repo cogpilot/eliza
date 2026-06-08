@@ -1,0 +1,169 @@
+# elizaOS Installer Justfile
+# Build and development commands for the guided installer
+
+# Default recipe
+default:
+    @just --list
+
+# Install dependencies
+install:
+    bun install
+
+# Run development server (UI + backend)
+dev:
+    bun run dev:all
+
+# Run only UI development server
+dev-ui:
+    bun run dev
+
+# Run only backend server
+dev-server:
+    bun run dev:server
+
+# Build for production
+build:
+    bun run build:all
+
+# Build only UI
+build-ui:
+    bun run build
+
+# Build only server
+build-server:
+    bun run build:server
+
+# Run type checking
+typecheck:
+    bun run typecheck
+
+# Run linter
+lint:
+    bun run lint
+
+# Run tests
+test:
+    bun run test
+
+# Run end-to-end tests
+test-e2e:
+    bun run test:e2e
+
+# Clean build artifacts
+clean:
+    rm -rf dist node_modules .vite
+
+# Package for Linux installation
+package-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    # Build the installer
+    just build
+    
+    # Create package structure
+    PACKAGE_DIR="dist/elizaos-installer"
+    mkdir -p "$PACKAGE_DIR/bin"
+    
+    # Copy built assets
+    cp -r dist/assets "$PACKAGE_DIR/"
+    cp dist/index.html "$PACKAGE_DIR/"
+    cp dist/server.js "$PACKAGE_DIR/bin/elizaos-installer-server"
+    
+    # Create launcher script
+    cat > "$PACKAGE_DIR/bin/elizaos-guided-install" << 'EOF'
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    INSTALLER_DIR="$(dirname "$(dirname "$(realpath "$0")")")"
+    
+    # Start backend server
+    "$INSTALLER_DIR/bin/elizaos-installer-server" &
+    SERVER_PID=$!
+    trap "kill $SERVER_PID 2>/dev/null" EXIT
+    
+    # Wait for server to start
+    sleep 2
+    
+    # Open installer in browser or Electrobun
+    if command -v electrobun &>/dev/null; then
+        electrobun "$INSTALLER_DIR/index.html"
+    elif command -v xdg-open &>/dev/null; then
+        xdg-open "http://localhost:3000"
+    else
+        echo "Open http://localhost:3000 in your browser to access the installer"
+        wait $SERVER_PID
+    fi
+    EOF
+    chmod +x "$PACKAGE_DIR/bin/elizaos-guided-install"
+    
+    # Create auto-install script
+    cat > "$PACKAGE_DIR/bin/elizaos-auto-install" << 'EOF'
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    CONFIG_FILE="${1:-}"
+    if [[ -z "$CONFIG_FILE" ]] && [[ -n "${ELIZAOS_ANSWER_FILE:-}" ]]; then
+        CONFIG_FILE="$ELIZAOS_ANSWER_FILE"
+    fi
+    
+    if [[ -z "$CONFIG_FILE" ]] || [[ ! -f "$CONFIG_FILE" ]]; then
+        echo "Usage: elizaos-auto-install <config.json>"
+        echo "Or set ELIZAOS_ANSWER_FILE environment variable"
+        exit 1
+    fi
+    
+    INSTALLER_DIR="$(dirname "$(dirname "$(realpath "$0")")")"
+    
+    # Start backend server
+    "$INSTALLER_DIR/bin/elizaos-installer-server" &
+    SERVER_PID=$!
+    trap "kill $SERVER_PID 2>/dev/null" EXIT
+    
+    # Wait for server to start
+    sleep 2
+    
+    # Submit installation request
+    curl -s -X POST http://localhost:3001/api/install \
+        -H "Content-Type: application/json" \
+        -d "@$CONFIG_FILE"
+    
+    # Poll for completion
+    while true; do
+        PROGRESS=$(curl -s http://localhost:3001/api/progress)
+        STEP=$(echo "$PROGRESS" | jq -r '.progress.step')
+        PERCENT=$(echo "$PROGRESS" | jq -r '.progress.progress')
+        MESSAGE=$(echo "$PROGRESS" | jq -r '.progress.message')
+        
+        echo "[$PERCENT%] $STEP: $MESSAGE"
+        
+        if [[ "$STEP" == "complete" ]]; then
+            echo "Installation complete!"
+            exit 0
+        elif [[ "$STEP" == "failed" ]]; then
+            ERROR=$(echo "$PROGRESS" | jq -r '.progress.error')
+            echo "Installation failed: $ERROR"
+            exit 1
+        fi
+        
+        sleep 5
+    done
+    EOF
+    chmod +x "$PACKAGE_DIR/bin/elizaos-auto-install"
+    
+    echo "Package created at $PACKAGE_DIR"
+
+# Create tarball for distribution
+dist: package-linux
+    #!/usr/bin/env bash
+    set -euo pipefail
+    
+    VERSION=$(jq -r '.version' package.json)
+    TARBALL="elizaos-installer-${VERSION}.tar.gz"
+    
+    cd dist
+    tar -czvf "$TARBALL" elizaos-installer/
+    sha256sum "$TARBALL" > "${TARBALL}.sha256"
+    
+    echo "Created dist/$TARBALL"
+    echo "SHA256: $(cat ${TARBALL}.sha256)"

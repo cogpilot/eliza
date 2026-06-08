@@ -1,0 +1,762 @@
+/**
+ * elizaOS Installer Styles
+ * Dark theme matching DESIGN.md specifications
+ */
+
+:root {
+  /* Colors from DESIGN.md */
+  --color-primary: #050507;
+  --color-secondary: #9EA0AA;
+  --color-tertiary: #FF5800;
+  --color-neutral: #F6F6F8;
+  --color-background: #0A0B0F;
+  --color-surface: #111318;
+  --color-surface-muted: #181B22;
+  --color-border: #2A2D36;
+  --color-accent: #FF5800;
+  --color-accent-hover: #FF6D1F;
+  --color-accent-soft: #2A170D;
+  --color-success: #22C55E;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --color-text: #F6F6F8;
+  --color-text-muted: #A6A6B0;
+  --color-text-subtle: #6F7280;
+
+  /* Typography */
+  --font-display: 'Poppins', sans-serif;
+  --font-body: 'Open Sans', sans-serif;
+  --font-mono: ui-monospace, monospace;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-xxl: 48px;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-text);
+  background-color: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* App Layout */
+.installer-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.installer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md) var(--spacing-xl);
+  background-color: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.installer-logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--color-text);
+}
+
+/* Step Indicator */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}
+
+.step.current {
+  color: var(--color-accent);
+}
+
+.step.completed {
+  color: var(--color-success);
+}
+
+.step-number {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: var(--color-surface-muted);
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+
+.step.current .step-number {
+  background-color: var(--color-accent);
+  color: var(--color-neutral);
+}
+
+.step.completed .step-number {
+  background-color: var(--color-success);
+  color: var(--color-neutral);
+}
+
+.step-label {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .step-label {
+    display: block;
+  }
+}
+
+/* Main Content */
+.installer-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: var(--spacing-xl);
+}
+
+/* Pages */
+.installer-page {
+  width: 100%;
+  max-width: 640px;
+  background-color: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--color-border);
+}
+
+.installer-page h2 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-sm);
+}
+
+.page-description {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.warning-text {
+  color: var(--color-warning);
+}
+
+/* Welcome Page */
+.welcome-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+}
+
+.welcome-logo {
+  margin-bottom: var(--spacing-md);
+}
+
+.welcome-subtitle {
+  color: var(--color-text-muted);
+  font-size: 1.125rem;
+}
+
+/* Form Elements */
+.form-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-section h3 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-text);
+}
+
+.section-description {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.form-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text);
+}
+
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  margin-top: var(--spacing-xs);
+}
+
+.settings-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.settings-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text);
+}
+
+/* Inputs */
+.installer-input,
+.installer-select,
+.installer-textarea {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 1rem;
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-color: var(--color-surface-muted);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s ease;
+}
+
+.installer-input:focus,
+.installer-select:focus,
+.installer-textarea:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.installer-select {
+  cursor: pointer;
+}
+
+.installer-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Checkboxes */
+.checkbox-group {
+  margin-bottom: var(--spacing-md);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--color-accent);
+}
+
+/* Buttons */
+.installer-button {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: 1rem;
+  font-family: var(--font-display);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.installer-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.installer-button.primary {
+  background-color: var(--color-accent);
+  color: var(--color-neutral);
+}
+
+.installer-button.primary:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+}
+
+.installer-button.primary.danger {
+  background-color: var(--color-danger);
+}
+
+.installer-button.secondary {
+  background-color: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.installer-button.secondary:hover:not(:disabled) {
+  background-color: var(--color-border);
+}
+
+.installer-button.small {
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: 0.875rem;
+}
+
+.installer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Cards */
+.install-type-card,
+.privacy-mode-card,
+.provider-card,
+.disk-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: var(--spacing-md);
+  background-color: var(--color-surface-muted);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  margin-bottom: var(--spacing-sm);
+}
+
+.install-type-card:hover,
+.privacy-mode-card:hover,
+.provider-card:hover,
+.disk-card:hover {
+  border-color: var(--color-accent-soft);
+  background-color: var(--color-accent-soft);
+}
+
+.install-type-card.selected,
+.privacy-mode-card.selected,
+.provider-card.selected,
+.disk-card.selected {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent-soft);
+}
+
+.install-type-icon,
+.mode-icon,
+.provider-icon,
+.disk-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.install-type-content,
+.mode-content,
+.provider-content,
+.disk-info {
+  flex: 1;
+}
+
+.install-type-content h3,
+.mode-content h4,
+.provider-content h4 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-text);
+}
+
+.install-type-content p,
+.mode-content p,
+.provider-content p {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.radio-indicator {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.radio-indicator.checked {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+}
+
+.recommended-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-left: var(--spacing-sm);
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--color-accent);
+  color: var(--color-neutral);
+  border-radius: var(--radius-sm);
+}
+
+/* Disk Selection */
+.disk-actions {
+  margin-bottom: var(--spacing-md);
+}
+
+.disk-list {
+  margin-bottom: var(--spacing-md);
+}
+
+.disk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xs);
+}
+
+.disk-model {
+  font-weight: 600;
+}
+
+.disk-safety {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.badge-safe {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: var(--color-success);
+}
+
+.badge-warning {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: var(--color-warning);
+}
+
+.badge-danger {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: var(--color-danger);
+}
+
+.disk-details {
+  display: flex;
+  gap: var(--spacing-md);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.disk-partitions {
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  margin-top: var(--spacing-xs);
+}
+
+.no-disks-message {
+  padding: var(--spacing-xl);
+  text-align: center;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+
+/* License Page */
+.license-tabs {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+}
+
+.license-tab {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-surface-muted);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+}
+
+.license-tab.active {
+  background-color: var(--color-accent);
+  color: var(--color-neutral);
+}
+
+.license-content {
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+}
+
+.license-text {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+  color: var(--color-text-muted);
+}
+
+.license-accept {
+  margin-bottom: var(--spacing-md);
+}
+
+/* Error List */
+.error-list {
+  margin-bottom: var(--spacing-md);
+}
+
+.error-item {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid var(--color-danger);
+  color: var(--color-danger);
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-xs);
+}
+
+/* Collapsible Sections */
+.form-section.collapsible details summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.form-section.collapsible details summary::-webkit-details-marker {
+  display: none;
+}
+
+.form-section.collapsible details summary h3 {
+  color: var(--color-text-muted);
+}
+
+.form-section.collapsible details summary h3::before {
+  content: '▶ ';
+  font-size: 0.75rem;
+}
+
+.form-section.collapsible details[open] summary h3::before {
+  content: '▼ ';
+}
+
+/* Privacy Mode Warning */
+.privacy-mode-warning {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: rgba(245, 158, 11, 0.1);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.privacy-mode-warning ul {
+  margin: var(--spacing-sm) 0 var(--spacing-sm) var(--spacing-lg);
+}
+
+/* Review Page */
+.review-sections {
+  margin-bottom: var(--spacing-lg);
+}
+
+.review-section {
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: var(--color-surface-muted);
+  border-radius: var(--radius-sm);
+}
+
+.review-section h3 {
+  font-size: 0.875rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.review-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-xs) 0;
+  font-size: 0.875rem;
+}
+
+.review-label {
+  color: var(--color-text-muted);
+}
+
+.review-value {
+  text-align: right;
+}
+
+.review-warning {
+  padding: var(--spacing-md);
+  background-color: rgba(239, 68, 68, 0.1);
+  border-left: 3px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+}
+
+.review-warning code {
+  background-color: var(--color-surface);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Progress Page */
+.progress-complete,
+.progress-failed {
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.complete-icon,
+.failed-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.progress-subtitle {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.progress-bar-container {
+  height: 8px;
+  background-color: var(--color-surface-muted);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: var(--spacing-sm);
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--color-accent);
+  transition: width 0.3s ease;
+}
+
+.progress-percent {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+}
+
+.operation-list {
+  margin-bottom: var(--spacing-lg);
+}
+
+.operation-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  font-size: 0.875rem;
+}
+
+.operation-item.running {
+  color: var(--color-accent);
+}
+
+.operation-item.completed {
+  color: var(--color-success);
+}
+
+.operation-item.failed {
+  color: var(--color-danger);
+}
+
+.status-icon {
+  width: 20px;
+  text-align: center;
+}
+
+.status-icon.running {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.operation-error {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--color-danger);
+}
+
+.progress-warning {
+  padding: var(--spacing-md);
+  background-color: rgba(245, 158, 11, 0.1);
+  border-left: 3px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Live Session Info */
+.live-session-info {
+  text-align: center;
+  padding: var(--spacing-xl);
+}
+
+.live-icon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-md);
+}
+
+.live-session-info .warning {
+  margin-top: var(--spacing-md);
+  color: var(--color-warning);
+}
+
+/* Footer */
+.installer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}

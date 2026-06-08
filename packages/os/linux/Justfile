@@ -361,3 +361,202 @@ smoke-arch arch="amd64":
     echo
     echo "✅ smoke passed for {{arch}}. To run the full ISO build:"
     echo "    ELIZAOS_ARCH={{arch}} just build"
+
+# --- VM Build Targets -------------------------------------------------------
+#
+# These recipes produce VM-optimized images with the guided installer. Use for
+# VirtualBox, VMware, QEMU/KVM, or cloud deployment.
+
+# Build elizaOS VM image with guided installer
+vm-build: elizaos-app
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Building elizaOS VM image..."
+    ELIZAOS_BUILD_TYPE=vm ELIZAOS_INCLUDE_INSTALLER=1 ./build.sh build
+    echo "✅ VM ISO built successfully"
+
+# Build VM image with low CPU usage
+vm-build-cool: elizaos-app
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cpus="${ELIZAOS_BUILD_CPUS:-2}"
+    echo "Building elizaOS VM image (cool mode, ${cpus} CPUs)..."
+    ELIZAOS_BUILD_CPUS="${cpus}" \
+        ELIZAOS_MKSQUASHFS_PROCESSORS="${ELIZAOS_MKSQUASHFS_PROCESSORS:-${cpus}}" \
+        ELIZAOS_BUILD_TYPE=vm \
+        ELIZAOS_INCLUDE_INSTALLER=1 \
+        MT_FAST=1 \
+        ./build.sh build
+
+# Convert ISO to QCOW2 (for QEMU/KVM)
+vm-convert-qcow2:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ISO=$(find out -name "*.iso" -o -name "*.img" 2>/dev/null | sort | tail -1)
+    if [ -z "$ISO" ]; then
+        echo "ERROR: No ISO/IMG found in out/. Run 'just vm-build' first."
+        exit 1
+    fi
+    DATE=$(date +%Y.%m.%d)
+    QCOW2="out/elizaos-vm-${DATE}.qcow2"
+    echo "Converting ${ISO} to QCOW2..."
+    qemu-img create -f qcow2 "$QCOW2" 50G
+    echo "QCOW2 created at ${QCOW2}"
+    echo "To install, boot with: qemu-system-x86_64 -m 4G -cdrom ${ISO} -hda ${QCOW2} -boot d"
+
+# Convert built image to OVA (for VirtualBox/VMware)
+vm-convert-ova:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    QCOW2=$(find out -name "*.qcow2" 2>/dev/null | sort | tail -1)
+    if [ -z "$QCOW2" ]; then
+        echo "ERROR: No QCOW2 found. Run 'just vm-convert-qcow2' first."
+        exit 1
+    fi
+    DATE=$(date +%Y.%m.%d)
+    VMDK="out/elizaos-vm-${DATE}.vmdk"
+    OVF="out/elizaos-vm-${DATE}.ovf"
+    OVA="out/elizaos-vm-${DATE}.ova"
+    
+    echo "Converting QCOW2 to VMDK..."
+    qemu-img convert -f qcow2 -O vmdk "$QCOW2" "$VMDK"
+    
+    echo "Generating OVF descriptor..."
+    cat > "$OVF" << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<Envelope xmlns="http://schemas.dmtf.org/ovf/envelope/1"
+          xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+          xmlns:rasd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData"
+          xmlns:vssd="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData"
+          xmlns:vbox="http://www.virtualbox.org/ovf/machine">
+  <References>
+    <File ovf:href="elizaos-vm-DATEPLACEHOLDER.vmdk" ovf:id="file1"/>
+  </References>
+  <DiskSection>
+    <Info>Virtual disk information</Info>
+    <Disk ovf:capacity="53687091200" ovf:diskId="disk1" ovf:fileRef="file1" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized"/>
+  </DiskSection>
+  <VirtualSystem ovf:id="elizaOS">
+    <Info>elizaOS Virtual Machine</Info>
+    <Name>elizaOS</Name>
+    <OperatingSystemSection ovf:id="96">
+      <Info>Debian 12 (64-bit)</Info>
+      <Description>Debian_64</Description>
+    </OperatingSystemSection>
+    <VirtualHardwareSection>
+      <Info>Virtual hardware requirements</Info>
+      <System>
+        <vssd:ElementName>Virtual Hardware Family</vssd:ElementName>
+        <vssd:InstanceID>0</vssd:InstanceID>
+        <vssd:VirtualSystemType>virtualbox-2.2</vssd:VirtualSystemType>
+      </System>
+      <Item>
+        <rasd:Caption>4 virtual CPU</rasd:Caption>
+        <rasd:Description>Number of virtual CPUs</rasd:Description>
+        <rasd:ElementName>4 virtual CPU</rasd:ElementName>
+        <rasd:InstanceID>1</rasd:InstanceID>
+        <rasd:ResourceType>3</rasd:ResourceType>
+        <rasd:VirtualQuantity>4</rasd:VirtualQuantity>
+      </Item>
+      <Item>
+        <rasd:AllocationUnits>MegaBytes</rasd:AllocationUnits>
+        <rasd:Caption>4096 MB of memory</rasd:Caption>
+        <rasd:Description>Memory Size</rasd:Description>
+        <rasd:ElementName>4096 MB of memory</rasd:ElementName>
+        <rasd:InstanceID>2</rasd:InstanceID>
+        <rasd:ResourceType>4</rasd:ResourceType>
+        <rasd:VirtualQuantity>4096</rasd:VirtualQuantity>
+      </Item>
+      <Item>
+        <rasd:AddressOnParent>0</rasd:AddressOnParent>
+        <rasd:Caption>disk1</rasd:Caption>
+        <rasd:Description>Disk Image</rasd:Description>
+        <rasd:ElementName>disk1</rasd:ElementName>
+        <rasd:HostResource>/disk/disk1</rasd:HostResource>
+        <rasd:InstanceID>5</rasd:InstanceID>
+        <rasd:Parent>4</rasd:Parent>
+        <rasd:ResourceType>17</rasd:ResourceType>
+      </Item>
+    </VirtualHardwareSection>
+  </VirtualSystem>
+</Envelope>
+EOF
+    # Replace date placeholder
+    sed -i "s/DATEPLACEHOLDER/${DATE}/g" "$OVF"
+    
+    echo "Packaging OVA..."
+    tar -cvf "$OVA" -C out "$(basename "$OVF")" "$(basename "$VMDK")"
+    
+    echo "Generating checksums..."
+    sha256sum "$OVA" > "${OVA}.sha256"
+    
+    echo "✅ OVA created at ${OVA}"
+    echo "   SHA256: $(cat "${OVA}.sha256")"
+
+# Import OVA into VirtualBox
+vm-import-vbox:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    OVA=$(find out -name "*.ova" 2>/dev/null | sort | tail -1)
+    if [ -z "$OVA" ]; then
+        echo "ERROR: No OVA found. Run 'just vm-convert-ova' first."
+        exit 1
+    fi
+    echo "Importing ${OVA} into VirtualBox..."
+    VBoxManage import "$OVA" --vsys 0 --vmname "elizaOS"
+    echo "✅ VM imported. Start with: VBoxManage startvm elizaOS"
+
+# Test VM image in QEMU
+vm-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ISO=$(find out -name "*.iso" 2>/dev/null | sort | tail -1)
+    if [ -z "$ISO" ]; then
+        echo "ERROR: No ISO found in out/. Run 'just vm-build' first."
+        exit 1
+    fi
+    echo "Testing ${ISO} in QEMU..."
+    echo "Press Ctrl+A then X to exit"
+    qemu-system-x86_64 \
+        -m 4G \
+        -smp 4 \
+        -enable-kvm \
+        -cdrom "$ISO" \
+        -boot d \
+        -display gtk \
+        -device virtio-net-pci,netdev=net0 \
+        -netdev user,id=net0,hostfwd=tcp::2222-:22,hostfwd=tcp::3000-:3000
+
+# Run VM integration tests
+vm-integration-test:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ./vm/scripts/run-tests.sh "$@"
+
+# Build ISO with guided installer baked in
+vm-iso-with-installer: elizaos-app
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Building ISO with guided installer..."
+    
+    # Build the installer app if not already present
+    INSTALLER_DIR="$(git rev-parse --show-toplevel)/packages/os/installer"
+    if [ -d "$INSTALLER_DIR" ]; then
+        echo "Building installer app..."
+        ( cd "$INSTALLER_DIR" && bun install && bun run build ) || true
+        
+        # Stage installer into chroot overlay
+        STAGE="tails/config/chroot_local-includes/opt/elizaos-installer"
+        mkdir -p "$STAGE"
+        if [ -d "$INSTALLER_DIR/dist" ]; then
+            cp -r "$INSTALLER_DIR/dist/"* "$STAGE/"
+            echo "Installer staged at $STAGE"
+        fi
+    fi
+    
+    ELIZAOS_INCLUDE_INSTALLER=1 ./build.sh build
+
+# Clean VM build artifacts
+vm-clean:
+    rm -rf out/*.qcow2 out/*.vmdk out/*.ovf out/*.ova out/*.sha256
+    @echo "VM artifacts cleaned"

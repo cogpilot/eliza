@@ -9,6 +9,9 @@ on:
       publish:
         type: boolean
         default: false
+      include_installer:
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       format:
@@ -20,13 +23,50 @@ on:
         description: Upload to GitHub Release
         type: boolean
         default: false
+      include_installer:
+        description: Include guided installer in VM
+        type: boolean
+        default: true
 
 # Default to least privilege. Override per-job where needed.
 permissions:
   contents: read
 
 jobs:
+  build-installer:
+    if: inputs.include_installer != false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: "canary"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile || bun install --no-frozen-lockfile
+
+      - name: Build installer app
+        working-directory: packages/os/installer
+        run: |
+          bun run build:all
+          mkdir -p ../linux/tails/config/chroot_local-includes/opt/elizaos-installer
+          cp -r dist/* ../linux/tails/config/chroot_local-includes/opt/elizaos-installer/
+
+      - name: Upload installer bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: installer-bundle
+          path: packages/os/linux/tails/config/chroot_local-includes/opt/elizaos-installer/
+          retention-days: 1
+
   build-vm:
+    needs: [build-installer]
+    if: always() && (needs.build-installer.result == 'success' || needs.build-installer.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -71,6 +111,13 @@ jobs:
           path: packages/os/linux/vm/disk-base/.cache
           key: elizaos-vm-upstream-${{ hashFiles('packages/os/linux/vm/disk-base/mmdebstrap.recipe') }}
           restore-keys: elizaos-vm-upstream-
+
+      - name: Download installer bundle
+        if: inputs.include_installer != false && needs.build-installer.result == 'success'
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+        with:
+          name: installer-bundle
+          path: packages/os/linux/tails/config/chroot_local-includes/opt/elizaos-installer/
 
       - name: Build VM base image
         working-directory: packages/os/linux
