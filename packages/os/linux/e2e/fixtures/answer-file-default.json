@@ -1,0 +1,26 @@
+{
+  "installType": "vm-disk",
+  "targetDisk": "/dev/vda",
+  "locale": {
+    "language": "en-US",
+    "timezone": "America/New_York",
+    "keyboardLayout": "us"
+  },
+  "user": {
+    "username": "eliza",
+    "password": "test-password-123",
+    "fullName": "elizaOS Test User",
+    "hostname": "elizaos-test",
+    "sshPublicKey": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest123456789 test@elizaos.ai"
+  },
+  "privacy": {
+    "networkMode": "direct",
+    "macSpoof": false,
+    "persistenceEncryption": false
+  },
+  "agent": {
+    "providerType": "local",
+    "enableVoice": false,
+    "enableTelemetry": false
+  }
+}

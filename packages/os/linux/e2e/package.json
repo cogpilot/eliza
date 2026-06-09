@@ -1,0 +1,27 @@
+{
+  "name": "@elizaos/vm-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end tests for elizaOS VM ISO guided installation",
+  "scripts": {
+    "test": "bun --bun playwright test",
+    "test:installer": "bun --bun playwright test tests/installer",
+    "test:boot-modes": "bun --bun playwright test tests/boot-modes",
+    "test:services": "bun --bun playwright test tests/services",
+    "test:integration": "bun --bun playwright test tests/integration",
+    "test:headed": "bun --bun playwright test --headed",
+    "test:ui": "bun --bun playwright test --ui",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ssh2": "^1.15.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^22.0.0",
+    "@types/ssh2": "^1.15.0",
+    "bun-types": "^1.3.13",
+    "typescript": "^5.5.0"
+  }
+}
