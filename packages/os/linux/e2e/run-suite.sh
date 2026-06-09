@@ -80,7 +80,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help|-h)
-            head -35 "$0" | tail -32
+            head -28 "$0" | tail -27
             exit 0
             ;;
         installer|boot-modes|services|integration|all)

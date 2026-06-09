@@ -134,8 +134,10 @@ export const test = base.extend<VMTestFixtures, VMWorkerFixtures>({
     const config = await buildVMConfig("normal-amnesia", "iso");
     const vm = await startVM(config);
 
-    // Wait for installer to be ready
-    await new Promise((resolve) => setTimeout(resolve, 30000));
+    // Wait for installer to be ready after ISO boot
+    // The installer GUI needs time to initialize after GRUB loads the live system
+    const INSTALLER_BOOT_DELAY_MS = 30000;
+    await new Promise((resolve) => setTimeout(resolve, INSTALLER_BOOT_DELAY_MS));
 
     const ssh = await waitForSSHConnection({
       port: config.sshPort,

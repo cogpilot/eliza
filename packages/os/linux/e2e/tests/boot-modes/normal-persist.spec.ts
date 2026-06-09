@@ -99,7 +99,7 @@ test.describe("Boot Mode - Normal + Persistent", () => {
     expect(configResult.code).toBe(0);
 
     // Verify LUKS-backed storage is being used
-    const luksResult = await ssh.exec("mount | grep 'crypt\\|luks' || findmnt -t ext4 ~/.eliza 2>/dev/null || echo 'encrypted mount'");
+    const luksResult = await ssh.exec("mount | grep -E 'crypt|luks' || findmnt -t ext4 ~/.eliza 2>/dev/null || echo 'encrypted mount'");
     expect(luksResult.code).toBe(0);
   });
 });

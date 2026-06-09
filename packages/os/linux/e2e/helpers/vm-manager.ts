@@ -276,14 +276,15 @@ async function waitForSSH(port: number, timeoutMs: number): Promise<boolean> {
 }
 
 /**
- * Take a screenshot from VNC.
+ * Take a screenshot from VNC using vncsnapshot.
  */
 export async function captureVNCScreenshot(vncPort: number, outputPath: string): Promise<void> {
+  const vncDisplay = vncPort - 5900;
   await new Promise<void>((resolve, reject) => {
-    const proc = spawn("grim", ["-g", `localhost:${vncPort}`, outputPath]);
+    const proc = spawn("vncsnapshot", [`localhost:${vncDisplay}`, outputPath]);
     proc.on("close", (code) => {
       if (code === 0) resolve();
-      else reject(new Error(`Screenshot capture failed with code ${code}`));
+      else reject(new Error(`VNC screenshot capture failed with code ${code}`));
     });
     proc.on("error", reject);
   });
