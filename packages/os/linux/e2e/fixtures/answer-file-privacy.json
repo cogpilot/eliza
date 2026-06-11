@@ -1,0 +1,25 @@
+{
+  "installType": "vm-disk",
+  "targetDisk": "/dev/vda",
+  "locale": {
+    "language": "en-US",
+    "timezone": "UTC",
+    "keyboardLayout": "us"
+  },
+  "user": {
+    "username": "eliza",
+    "password": "privacy-test-123",
+    "fullName": "elizaOS Privacy Test",
+    "hostname": "elizaos-privacy"
+  },
+  "privacy": {
+    "networkMode": "tor",
+    "macSpoof": true,
+    "persistenceEncryption": true
+  },
+  "agent": {
+    "providerType": "local",
+    "enableVoice": false,
+    "enableTelemetry": false
+  }
+}

@@ -252,6 +252,40 @@ lint:
 test:
     ./scripts/static-smoke.sh
 
+# --- VM E2E Tests -----------------------------------------------------------
+
+# Run all VM E2E tests. Requires a built qcow2 or ISO image in out/.
+e2e:
+    cd e2e && ./run-suite.sh all
+
+# Run installer wizard E2E tests only.
+e2e-installer:
+    cd e2e && ./run-suite.sh installer
+
+# Run boot mode matrix E2E tests only.
+e2e-boot-modes:
+    cd e2e && ./run-suite.sh boot-modes
+
+# Run service E2E tests only.
+e2e-services:
+    cd e2e && ./run-suite.sh services
+
+# Run integration E2E tests only.
+e2e-integration:
+    cd e2e && ./run-suite.sh integration
+
+# Run E2E tests with recording enabled.
+e2e-record:
+    cd e2e && ./run-suite.sh --record all
+
+# Run E2E tests without KVM (slower but works on any host).
+e2e-no-kvm:
+    cd e2e && ./run-suite.sh --no-kvm all
+
+# Install E2E test dependencies.
+e2e-setup:
+    cd e2e && bun install && bun playwright install --with-deps chromium
+
 # --- CI aliases -------------------------------------------------------------
 #
 # The release pipeline (.github/workflows/build-linux-iso.yml) calls a fixed

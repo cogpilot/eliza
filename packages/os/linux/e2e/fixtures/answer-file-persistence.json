@@ -1,0 +1,26 @@
+{
+  "installType": "usb-persistent",
+  "targetDisk": "/dev/vdb",
+  "locale": {
+    "language": "en-US",
+    "timezone": "UTC",
+    "keyboardLayout": "us"
+  },
+  "user": {
+    "username": "eliza",
+    "password": "persist-test-123",
+    "fullName": "elizaOS Persistence Test",
+    "hostname": "elizaos-persist"
+  },
+  "privacy": {
+    "networkMode": "direct",
+    "macSpoof": true,
+    "persistenceEncryption": true,
+    "persistencePassphrase": "test-luks-passphrase"
+  },
+  "agent": {
+    "providerType": "local",
+    "enableVoice": false,
+    "enableTelemetry": false
+  }
+}
